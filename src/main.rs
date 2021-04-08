@@ -1,3 +1,6 @@
+mod file_reader;
+
 fn main() {
-    println!("Hello, world!");
+    let source_code = String::from(file_reader::read_file("src/source_code.c"));
+    println!("Source code: \n{}", source_code);
 }

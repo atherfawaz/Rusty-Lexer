@@ -1,4 +1,3 @@
-use std::env;
 use std::fs;
 
 pub(crate) fn read_file(file_name: &str) -> String {

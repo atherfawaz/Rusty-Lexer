@@ -3,7 +3,7 @@ use std::collections::HashMap;
 
 fn build_tokens(token_vector: Vec<&str>) -> HashMap<&str, &str> {
     let mut token_map = HashMap::new();
-    for elem in &token_vector {
+    for &elem in &token_vector {
         println!("Parsing: {}", elem);
         let one_tok: Vec<&str> = elem.split(",").collect();
         token_map.insert(one_tok[0], one_tok[1]);
@@ -22,9 +22,11 @@ fn main() {
     let mut tokens = Vec::new();
     println!("BUILDING TOKENS:");
     for &elem in &split_code {
-        match token_map.get(elem) {
-            Some(map_found) => tokens.push((elem, map_found)),
-            None => println!("Calling manual_parser() for {}", elem),
+        if !elem.is_empty() {
+            match token_map.get(elem) {
+                Some(map_found) => tokens.push((elem, map_found)),
+                None => println!("Calling manual_parser() for {}", elem),
+            }
         }
     }
 

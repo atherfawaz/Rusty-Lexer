@@ -12,7 +12,6 @@ enum Token {
     MULTIPLY(String),
     LESSTHAN(String),
     GREATERTHAN(String),
-    HASHTAG(String),
     DOT(String),
     COMMA(String),
     OPENPARENTHESES(String),
@@ -29,6 +28,14 @@ enum Token {
     REFERENCE(String),
     SEMICOLON(String),
     COLON(String),
+    PLUSEQUALS(String),
+    MINUSEQUALS(String),
+    MULTIPLYEQUALS(String),
+    MODEQUALS(String),
+    AND(String),
+    OR(String),
+    NOT(String),
+    ABSOLUTEVALUE(String),
 }
 
 struct Lexer<'a> {
@@ -43,7 +50,7 @@ impl<'a> Lexer<'a> {
     fn next(&mut self, mapping: &HashMap<&str, &str>) -> Option<Token> {
         let mut start: &str = self.iter.as_str();
         let mut index = self.iter.next();
-
+        let j = 0;
         while let Some(chr) = index {
             if !chr.is_whitespace() {
                 break;
@@ -55,13 +62,69 @@ impl<'a> Lexer<'a> {
         if let Some(chr) = index {
             match chr {
                 '.' => Some(Token::DOT(String::from(chr))),
-                '+' => Some(Token::PLUS(String::from(chr))),
-                '-' => Some(Token::MINUS(String::from(chr))),
-                '*' => Some(Token::MULTIPLY(String::from(chr))),
-                '%' => Some(Token::MOD(String::from(chr))),
+                '!' => Some(Token::NOT(String::from(chr))),
+                '+' => {
+                    if let Some(c) = self.iter.next() {
+                        if c == '=' {
+                            Some(Token::PLUSEQUALS(String::from("+=")))
+                        } else {
+                            Some(Token::PLUS(String::from(chr)))
+                        }
+                    } else {
+                        Some(Token::PLUS(String::from(chr)))
+                    }
+                }
+                '-' => {
+                    if let Some(c) = self.iter.next() {
+                        if c == '=' {
+                            Some(Token::MINUSEQUALS(String::from("-=")))
+                        } else {
+                            Some(Token::MINUS(String::from(chr)))
+                        }
+                    } else {
+                        Some(Token::MINUS(String::from(chr)))
+                    }
+                }
+                '*' => {
+                    if let Some(c) = self.iter.next() {
+                        if c == '=' {
+                            Some(Token::MULTIPLYEQUALS(String::from("*=")))
+                        } else {
+                            Some(Token::MULTIPLY(String::from(chr)))
+                        }
+                    } else {
+                        Some(Token::MULTIPLY(String::from(chr)))
+                    }
+                }
+                '%' => {
+                    if let Some(c) = self.iter.next() {
+                        if c == '=' {
+                            Some(Token::MODEQUALS(String::from("%=")))
+                        } else {
+                            Some(Token::MOD(String::from(chr)))
+                        }
+                    } else {
+                        Some(Token::MOD(String::from(chr)))
+                    }
+                }
                 '<' => Some(Token::LESSTHAN(String::from(chr))),
                 '>' => Some(Token::GREATERTHAN(String::from(chr))),
-                '#' => Some(Token::HASHTAG(String::from(chr))),
+                '#' => {
+                    let mut end = self.iter.as_str();
+                    while let Some(c) = self.iter.next() {
+                        if !c.is_ascii_alphanumeric() && c != '_' {
+                            break;
+                        }
+                        end = self.iter.as_str();
+                    }
+                    let len = start.len() - end.len();
+                    let word = String::from(start[0..len].trim().to_string());
+                    if mapping.contains_key(&start[0..len]) {
+                        Some(Token::KEYWORD(word))
+                    } else {
+                        Some(Token::IDENTIFIER(start[0..len].trim().to_string()))
+                    }
+                }
                 ',' => Some(Token::COMMA(String::from(chr))),
                 '\'' => Some(Token::APOSTROPHE(String::from(chr))),
                 '(' => Some(Token::OPENPARENTHESES(String::from(chr))),
@@ -71,7 +134,28 @@ impl<'a> Lexer<'a> {
                 '{' => Some(Token::STARTBRACES(String::from(chr))),
                 '}' => Some(Token::ENDBRACES(String::from(chr))),
                 '"' => Some(Token::INVERTEDCOMMAS(String::from(chr))),
-                '&' => Some(Token::REFERENCE(String::from(chr))),
+                '&' => {
+                    if let Some(c) = self.iter.next() {
+                        if c == '&' {
+                            Some(Token::AND(String::from("&&")))
+                        } else {
+                            Some(Token::REFERENCE(String::from(chr)))
+                        }
+                    } else {
+                        Some(Token::REFERENCE(String::from(chr)))
+                    }
+                }
+                '|' => {
+                    if let Some(c) = self.iter.next() {
+                        if c == '|' {
+                            Some(Token::OR(String::from("||")))
+                        } else {
+                            Some(Token::ABSOLUTEVALUE(String::from(chr)))
+                        }
+                    } else {
+                        Some(Token::ABSOLUTEVALUE(String::from(chr)))
+                    }
+                }
                 ';' => Some(Token::SEMICOLON(String::from(chr))),
                 ':' => Some(Token::COLON(String::from(chr))),
                 '=' => {
@@ -101,7 +185,9 @@ impl<'a> Lexer<'a> {
                     let mut end = self.iter.as_str();
                     while let Some(c) = self.iter.next() {
                         if !c.is_ascii_alphanumeric() && c != '_' {
-                            break;
+                            if c != '.' {
+                                break;
+                            }
                         }
                         end = self.iter.as_str();
                     }
@@ -130,20 +216,11 @@ fn build_tokens(token_vector: Vec<&str>) -> HashMap<&str, &str> {
     return token_map;
 }
 
-fn rem_first_and_last(value: &str) -> &str {
-    let mut chars = value.chars();
-    chars.next();
-    chars.next_back();
-    chars.as_str()
-}
-
 fn main() {
     let tokens_str = String::from(file_reader::read_tokens("src/TOKENS.txt"));
     let token_map: HashMap<&str, &str> = build_tokens(tokens_str.split(" ").collect());
     let code = String::from(file_reader::read_source_code("src/source_code.c")).to_owned();
-    let mut code_slice: &str = &code[..];
-    //code_slice = rem_first_and_last(code_slice);
-    println!("\nCODE: \n{:?}", code_slice);
+    let code_slice: &str = &code[..];
 
     let mut generated_tokens = Vec::new();
 

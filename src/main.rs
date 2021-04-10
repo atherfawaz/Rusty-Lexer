@@ -26,6 +26,9 @@ enum Token {
     EQUALS(String),
     ASSIGNMENT(String),
     KEYWORD(String),
+    REFERENCE(String),
+    SEMICOLON(String),
+    COLON(String),
 }
 
 struct Lexer<'a> {
@@ -51,6 +54,7 @@ impl<'a> Lexer<'a> {
 
         if let Some(chr) = index {
             match chr {
+                '.' => Some(Token::DOT(String::from(chr))),
                 '+' => Some(Token::PLUS(String::from(chr))),
                 '-' => Some(Token::MINUS(String::from(chr))),
                 '*' => Some(Token::MULTIPLY(String::from(chr))),
@@ -60,7 +64,6 @@ impl<'a> Lexer<'a> {
                 '#' => Some(Token::HASHTAG(String::from(chr))),
                 ',' => Some(Token::COMMA(String::from(chr))),
                 '\'' => Some(Token::APOSTROPHE(String::from(chr))),
-                '.' => Some(Token::DOT(String::from(chr))),
                 '(' => Some(Token::OPENPARENTHESES(String::from(chr))),
                 ')' => Some(Token::CLOSEPARENTHESES(String::from(chr))),
                 '[' => Some(Token::STARTSQUAREBRACKETS(String::from(chr))),
@@ -68,6 +71,9 @@ impl<'a> Lexer<'a> {
                 '{' => Some(Token::STARTBRACES(String::from(chr))),
                 '}' => Some(Token::ENDBRACES(String::from(chr))),
                 '"' => Some(Token::INVERTEDCOMMAS(String::from(chr))),
+                '&' => Some(Token::REFERENCE(String::from(chr))),
+                ';' => Some(Token::SEMICOLON(String::from(chr))),
+                ':' => Some(Token::COLON(String::from(chr))),
                 '=' => {
                     if let Some(c) = self.iter.next() {
                         if c == '=' {
@@ -136,9 +142,15 @@ fn main() {
     let token_map: HashMap<&str, &str> = build_tokens(tokens_str.split(" ").collect());
     let code = String::from(file_reader::read_source_code("src/source_code.c")).to_owned();
     let mut code_slice: &str = &code[..];
-    code_slice = rem_first_and_last(code_slice);
+    //code_slice = rem_first_and_last(code_slice);
+    println!("\nCODE: \n{:?}", code_slice);
+
+    let mut generated_tokens = Vec::new();
+
     let mut lex = Lexer::new(code_slice);
     while let Some(token) = lex.next(&token_map) {
-        println!("Found: {:?}", token);
+        generated_tokens.push(token);
     }
+
+    println!("\nGENERATED TOKENS: \n\n{:?}", generated_tokens);
 }

@@ -1,7 +1,7 @@
-#include < stdio.h >
-#include < stdlib.h >
-#include < mmap.h >
-#include < pthread.h >
+#include <stdio.h>
+#include <stdlib.h>
+#include <mmap.h>
+#include <pthread.h>
 
 int main(int argc, char **argv)
 {

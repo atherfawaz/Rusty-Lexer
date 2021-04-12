@@ -3,6 +3,7 @@ mod file_reader;
 use std::collections::HashMap;
 
 #[derive(Debug)]
+#[derive(PartialEq)]
 enum Token {
     PLUS(String),
     MINUS(String),
@@ -36,6 +37,12 @@ enum Token {
     OR(String),
     NOT(String),
     ABSOLUTEVALUE(String),
+    LESSTHANEQUALS(String),
+    GREATERTHANEQUALS(String),
+    PLUSPLUS(String),
+    MINUSMINUS(String),
+    SHIFTLEFT(String),
+    SHIFTRIGHT(String),
 }
 
 struct Lexer<'a> {
@@ -47,10 +54,9 @@ impl<'a> Lexer<'a> {
         Lexer { iter: code.chars() }
     }
 
-    fn next(&mut self, mapping: &HashMap<&str, &str>) -> Option<Token> {
+    fn next(&mut self, mapping: &HashMap<&str, &str>, append: &mut String) -> Option<Token> {
         let mut start: &str = self.iter.as_str();
         let mut index = self.iter.next();
-        let j = 0;
         while let Some(chr) = index {
             if !chr.is_whitespace() {
                 break;
@@ -107,8 +113,34 @@ impl<'a> Lexer<'a> {
                         Some(Token::MOD(String::from(chr)))
                     }
                 }
-                '<' => Some(Token::LESSTHAN(String::from(chr))),
-                '>' => Some(Token::GREATERTHAN(String::from(chr))),
+                '<' => {
+                    if let Some(c) = self.iter.next() {
+                        if c == '<' {
+                            Some(Token::SHIFTLEFT(String::from("<<")))
+                        } else if c == '=' {
+                            Some(Token::LESSTHANEQUALS(String::from("<=")))
+                        } else {
+                            println!("Found a library import!");
+                            *append = String::from(c);
+                            Some(Token::LESSTHANEQUALS(String::from(chr)))
+                        }
+                    } else {
+                        Some(Token::LESSTHAN(String::from(chr)))
+                    }
+                }
+                '>' => {
+                    if let Some(c) = self.iter.next() {
+                        if c == '>' {
+                            Some(Token::SHIFTRIGHT(String::from(">>")))
+                        } else if c == '=' {
+                            Some(Token::GREATERTHANEQUALS(String::from(">=")))
+                        } else {
+                            Some(Token::GREATERTHAN(String::from(chr)))
+                        }
+                    } else {
+                        Some(Token::GREATERTHAN(String::from(chr)))
+                    }
+                }
                 '#' => {
                     let mut end = self.iter.as_str();
                     while let Some(c) = self.iter.next() {
@@ -193,8 +225,11 @@ impl<'a> Lexer<'a> {
                     }
                     let len = start.len() - end.len();
                     let word = String::from(start[0..len].trim().to_string());
-                    if mapping.contains_key(&start[0..len]) {
-                        Some(Token::KEYWORD(word))
+                    append.push_str(&word);
+                    let temp = String::from(append.as_mut_str());
+                    let temp_slice: &str = &temp[..];
+                    if mapping.contains_key(&temp_slice) {
+                        Some(Token::KEYWORD(temp))
                     } else {
                         Some(Token::IDENTIFIER(start[0..len].trim().to_string()))
                     }
@@ -225,8 +260,15 @@ fn main() {
     let mut generated_tokens = Vec::new();
 
     let mut lex = Lexer::new(code_slice);
-    while let Some(token) = lex.next(&token_map) {
+    let mut append = String::from("");
+    while let Some(token) = lex.next(&token_map, &mut append) {
         generated_tokens.push(token);
+    }
+
+    for i in 0..generated_tokens.len() {
+        if generated_tokens[i] == Token::IDENTIFIER(String::from(">")) {
+            generated_tokens.push(Token::GREATERTHAN(String::from(">")));
+        }
     }
 
     println!("\nGENERATED TOKENS: \n\n{:?}", generated_tokens);

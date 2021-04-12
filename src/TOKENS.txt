@@ -16,6 +16,10 @@ signed,SIGNED
 void,VOID
 case,^
 enum,^
+printf,^
+scanf,^
+FILE,^
+fprintf,^
 register,^
 typedef,^
 default,^

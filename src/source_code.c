@@ -15,11 +15,11 @@ int main(int argc, char **argv) {
   x << 1;
   bool that = true;
   char that = 'v';
+  char *string = "The meaning of life";
+  printf("&s", "Hello World!");
   int counter;
   for (counter = 0; counter <= 20; counter++) {
     printf("Hi");
   }
-  char *string = "The meaning of life";
-  printf("&s", "Hello World!");
   return;
 }

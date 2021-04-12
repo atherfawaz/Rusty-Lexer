@@ -39,8 +39,6 @@ enum Token {
     ABSOLUTEVALUE(String),
     LESSTHANEQUALS(String),
     GREATERTHANEQUALS(String),
-    PLUSPLUS(String),
-    MINUSMINUS(String),
     SHIFTLEFT(String),
     SHIFTRIGHT(String),
 }
@@ -120,7 +118,6 @@ impl<'a> Lexer<'a> {
                         } else if c == '=' {
                             Some(Token::LESSTHANEQUALS(String::from("<=")))
                         } else {
-                            println!("Found a library import!");
                             *append = String::from(c);
                             Some(Token::LESSTHANEQUALS(String::from(chr)))
                         }
@@ -227,6 +224,7 @@ impl<'a> Lexer<'a> {
                     let word = String::from(start[0..len].trim().to_string());
                     append.push_str(&word);
                     let temp = String::from(append.as_mut_str());
+                    append.clear();
                     let temp_slice: &str = &temp[..];
                     if mapping.contains_key(&temp_slice) {
                         Some(Token::KEYWORD(temp))
@@ -265,11 +263,16 @@ fn main() {
         generated_tokens.push(token);
     }
 
+    /*
     for i in 0..generated_tokens.len() {
-        if generated_tokens[i] == Token::IDENTIFIER(String::from(">")) {
-            generated_tokens.push(Token::GREATERTHAN(String::from(">")));
+        match &generated_tokens[i] {
+            Token::KEYWORD(val) => {
+                println!("{}", val);
+            },
+            _=> continue,
         }
     }
+    */
 
     println!("\nGENERATED TOKENS: \n\n{:?}", generated_tokens);
 }

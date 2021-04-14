@@ -238,7 +238,7 @@ impl<'a> Lexer<'a> {
                                 if mapping.contains_key(&temp_slice) {
                                     token_map.push(Token::KEYWORD(temp));
                                 } else {
-                                    token_map.push(Token::IDENTIFIER(temp));
+                                    token_map.push(Token::NUMBER(temp));
                                 }
                             }
                             break;

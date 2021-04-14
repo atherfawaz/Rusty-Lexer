@@ -3,11 +3,12 @@
 #include <mmap.h>
 #include <pthread.h>
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
   int x = 420;
   int y = 69;
   y += 290;
-  x ++;
+  x++;
   int j = 0;
   j += 1;
   bool nine = false;
@@ -15,18 +16,21 @@ int main(int argc, char **argv) {
   x << 1;
   bool that = true;
   char that = 'v';
-  char* string = "The meaning of life";
-  printf("&s", "Hello World!");
+  char *string = "The meaning of life";
+  printf("%s", "Hello World!");
   int n = 0xFFFFF;
-  if (n>56) {
+  if (n > 56)
+  {
     printf("Bonkers");
   }
   int counter;
   char c = 'c';
-  if (c>=2) {
+  if (c >= 2)
+  {
     printf("Ather");
   }
-  for (counter = 0; counter <= 20; counter++) {
+  for (counter = 0; counter <= 20; counter++)
+  {
     printf("Hi");
   }
   return;

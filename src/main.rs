@@ -2,8 +2,7 @@ use std::str::Chars;
 mod file_reader;
 use std::collections::HashMap;
 
-#[derive(Debug)]
-#[derive(PartialEq)]
+#[derive(Debug, PartialEq)]
 enum Token {
     PLUS(String),
     MINUS(String),
@@ -41,6 +40,8 @@ enum Token {
     GREATERTHANEQUALS(String),
     SHIFTLEFT(String),
     SHIFTRIGHT(String),
+    STARTSTAR(String),
+    STRING(String),
 }
 
 struct Lexer<'a> {
@@ -52,7 +53,12 @@ impl<'a> Lexer<'a> {
         Lexer { iter: code.chars() }
     }
 
-    fn next(&mut self, mapping: &HashMap<&str, &str>, append: &mut String) -> Option<Token> {
+    fn next(
+        &mut self,
+        mapping: &HashMap<&str, &str>,
+        append: &mut String,
+        token_map: &mut Vec<Token>,
+    ) -> Option<Token> {
         let mut start: &str = self.iter.as_str();
         let mut index = self.iter.next();
         while let Some(chr) = index {
@@ -67,6 +73,33 @@ impl<'a> Lexer<'a> {
             match chr {
                 '.' => Some(Token::DOT(String::from(chr))),
                 '!' => Some(Token::NOT(String::from(chr))),
+                ',' => Some(Token::COMMA(String::from(chr))),
+                '\'' => Some(Token::APOSTROPHE(String::from(chr))),
+                '(' => Some(Token::OPENPARENTHESES(String::from(chr))),
+                ')' => Some(Token::CLOSEPARENTHESES(String::from(chr))),
+                '[' => Some(Token::STARTSQUAREBRACKETS(String::from(chr))),
+                ']' => Some(Token::ENDSQUAREBRACKETS(String::from(chr))),
+                '{' => Some(Token::STARTBRACES(String::from(chr))),
+                '}' => Some(Token::ENDBRACES(String::from(chr))),
+                ';' => Some(Token::SEMICOLON(String::from(chr))),
+                ':' => Some(Token::COLON(String::from(chr))),
+                '"' => {
+                    token_map.push(Token::INVERTEDCOMMAS(String::from("\"")));
+                    let mut end = self.iter.as_str();
+                    while let Some(c) = self.iter.next() {
+                        if c == '\"' {
+                            break;
+                        }
+                        end = self.iter.as_str();
+                    }
+                    let len = start.len() - end.len();
+                    let word = String::from(start[1..len].trim().to_string());
+                    append.push_str(&word);
+                    let temp = String::from(append.as_mut_str());
+                    append.clear();
+                    token_map.push(Token::STRING(temp));
+                    Some(Token::INVERTEDCOMMAS(String::from("\"")))
+                }
                 '+' => {
                     if let Some(c) = self.iter.next() {
                         if c == '=' {
@@ -93,6 +126,8 @@ impl<'a> Lexer<'a> {
                     if let Some(c) = self.iter.next() {
                         if c == '=' {
                             Some(Token::MULTIPLYEQUALS(String::from("*=")))
+                        } else if c == '*' {
+                            Some(Token::STARTSTAR(String::from("**")))
                         } else {
                             Some(Token::MULTIPLY(String::from(chr)))
                         }
@@ -119,7 +154,7 @@ impl<'a> Lexer<'a> {
                             Some(Token::LESSTHANEQUALS(String::from("<=")))
                         } else {
                             *append = String::from(c);
-                            Some(Token::LESSTHANEQUALS(String::from(chr)))
+                            Some(Token::LESSTHAN(String::from(chr)))
                         }
                     } else {
                         Some(Token::LESSTHAN(String::from(chr)))
@@ -154,15 +189,6 @@ impl<'a> Lexer<'a> {
                         Some(Token::IDENTIFIER(start[0..len].trim().to_string()))
                     }
                 }
-                ',' => Some(Token::COMMA(String::from(chr))),
-                '\'' => Some(Token::APOSTROPHE(String::from(chr))),
-                '(' => Some(Token::OPENPARENTHESES(String::from(chr))),
-                ')' => Some(Token::CLOSEPARENTHESES(String::from(chr))),
-                '[' => Some(Token::STARTSQUAREBRACKETS(String::from(chr))),
-                ']' => Some(Token::ENDSQUAREBRACKETS(String::from(chr))),
-                '{' => Some(Token::STARTBRACES(String::from(chr))),
-                '}' => Some(Token::ENDBRACES(String::from(chr))),
-                '"' => Some(Token::INVERTEDCOMMAS(String::from(chr))),
                 '&' => {
                     if let Some(c) = self.iter.next() {
                         if c == '&' {
@@ -185,8 +211,6 @@ impl<'a> Lexer<'a> {
                         Some(Token::ABSOLUTEVALUE(String::from(chr)))
                     }
                 }
-                ';' => Some(Token::SEMICOLON(String::from(chr))),
-                ':' => Some(Token::COLON(String::from(chr))),
                 '=' => {
                     if let Some(c) = self.iter.next() {
                         if c == '=' {
@@ -199,37 +223,77 @@ impl<'a> Lexer<'a> {
                     }
                 }
                 '0'..='9' => {
+                    let mut checker = false;
                     let mut end = self.iter.as_str();
                     while let Some(c) = self.iter.next() {
                         if !c.is_ascii_digit() {
+                            if c == ';' {
+                                checker = true;
+                                let len = start.len() - end.len();
+                                let word = String::from(start[0..len].trim().to_string());
+                                append.push_str(&word);
+                                let temp = String::from(append.as_mut_str());
+                                append.clear();
+                                let temp_slice: &str = &temp[..];
+                                if mapping.contains_key(&temp_slice) {
+                                    token_map.push(Token::KEYWORD(temp));
+                                } else {
+                                    token_map.push(Token::IDENTIFIER(temp));
+                                }
+                            }
                             break;
                         }
                         end = self.iter.as_str();
                     }
-                    let len = start.len() - end.len();
-                    let word = start[0..len].trim().to_string();
-                    Some(Token::NUMBER(word))
+                    if !checker {
+                        let len = start.len() - end.len();
+                        let word = start[0..len].trim().to_string();
+                        Some(Token::NUMBER(word))
+                    } else {
+                        Some(Token::SEMICOLON(String::from(";")))
+                    }
                 }
                 'a'..='z' | 'A'..='Z' | '_' => {
+                    let mut library = false;
                     let mut end = self.iter.as_str();
                     while let Some(c) = self.iter.next() {
                         if !c.is_ascii_alphanumeric() && c != '_' {
                             if c != '.' {
+                                if c == '>' {
+                                    library = true;
+                                    let len = start.len() - end.len();
+                                    let word = String::from(start[0..len].trim().to_string());
+                                    append.push_str(&word);
+                                    let temp = String::from(append.as_mut_str());
+                                    append.clear();
+                                    let temp_slice: &str = &temp[..];
+                                    if mapping.contains_key(&temp_slice) {
+                                        token_map.push(Token::KEYWORD(temp));
+                                    }
+                                }
                                 break;
                             }
                         }
                         end = self.iter.as_str();
                     }
-                    let len = start.len() - end.len();
-                    let word = String::from(start[0..len].trim().to_string());
-                    append.push_str(&word);
-                    let temp = String::from(append.as_mut_str());
-                    append.clear();
-                    let temp_slice: &str = &temp[..];
-                    if mapping.contains_key(&temp_slice) {
-                        Some(Token::KEYWORD(temp))
+                    if !library {
+                        let len = start.len() - end.len();
+                        let word = String::from(start[0..len].trim().to_string());
+                        append.push_str(&word);
+                        let temp = String::from(append.as_mut_str());
+                        append.clear();
+                        let temp_slice: &str = &temp[..];
+                        if mapping.contains_key(&temp_slice) {
+                            if library == true {
+                                Some(Token::GREATERTHAN(String::from(">")))
+                            } else {
+                                Some(Token::KEYWORD(temp))
+                            }
+                        } else {
+                            Some(Token::IDENTIFIER(start[0..len].trim().to_string()))
+                        }
                     } else {
-                        Some(Token::IDENTIFIER(start[0..len].trim().to_string()))
+                        Some(Token::GREATERTHAN(String::from(">")))
                     }
                 }
                 _ => None,
@@ -259,7 +323,7 @@ fn main() {
 
     let mut lex = Lexer::new(code_slice);
     let mut append = String::from("");
-    while let Some(token) = lex.next(&token_map, &mut append) {
+    while let Some(token) = lex.next(&token_map, &mut append, &mut generated_tokens) {
         generated_tokens.push(token);
     }
 
@@ -274,5 +338,5 @@ fn main() {
     }
     */
 
-    println!("\nGENERATED TOKENS: \n\n{:?}", generated_tokens);
+    println!("\nGENERATED TOKENS\n {:?}", generated_tokens);
 }

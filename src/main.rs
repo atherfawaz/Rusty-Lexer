@@ -1,6 +1,6 @@
 use std::str::Chars;
-mod file_reader;
 use std::collections::HashMap;
+mod file_reader;
 
 #[derive(Debug, PartialEq)]
 enum Token {
@@ -326,17 +326,6 @@ fn main() {
     while let Some(token) = lex.next(&token_map, &mut append, &mut generated_tokens) {
         generated_tokens.push(token);
     }
-
-    /*
-    for i in 0..generated_tokens.len() {
-        match &generated_tokens[i] {
-            Token::KEYWORD(val) => {
-                println!("{}", val);
-            },
-            _=> continue,
-        }
-    }
-    */
 
     println!("\nGENERATED TOKENS\n {:?}", generated_tokens);
 }
